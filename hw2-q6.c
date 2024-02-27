@@ -17,8 +17,13 @@ void pc1(char *key, char *newkey){
 }
 
 void left_shift(char *src, char *dst, int num, int len){
-  strncpy(dst, src+num, len-num);
-  strncat(dst, src, num);
+  int i;
+  for(i=0;i<len-num;i++){
+      dst[i] = src[i+num];
+  }
+  for(i=len-num;i<len;i++){
+      dst[i] = src[len-i];
+  }
 }
 
 void pc2(char *c, char *d, char *key){
@@ -157,8 +162,8 @@ int main(){
   int shiftnum[16] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1};
   char key_round[16][49];
   for(i=1;i<17;i++){
-    left_shift(c[i-1], c[i], shiftnum[i], 28);
-    left_shift(d[i-1], d[i], shiftnum[i], 28);
+    left_shift(c[i-1], c[i], shiftnum[i-1], 28);
+    left_shift(d[i-1], d[i], shiftnum[i-1], 28);
     pc2(c[i], d[i], key_round[i-1]);
   }
 
@@ -172,13 +177,13 @@ int main(){
   char output[33];
   for(i=1;i<17;i++){
     strncpy(left[i], right[i-1], 33);
-    key_func(right[i-1], key_round[i], output);
+    key_func(right[i-1], key_round[i-1], output);
     for(j=0;j<32;j++){
       right[i][j] = (left[i-1][j]==output[j])?'0':'1';
     }
   }
 
-  char text[33];
+  char text[65];
   last_perm(left[16], right[16], text);
   printf("%s\n", text);
   return 0;
