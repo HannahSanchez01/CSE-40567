@@ -14,7 +14,6 @@ void pc1(char *key, char *newkey){
   for(i=0;i<56;i++){
     newkey[i] = key[permtable[i]-1];
   }
-  newkey[56] = '\0';
 }
 
 void left_shift(char *src, char *dst, int num, int len){
@@ -72,12 +71,20 @@ void key_func(char *right, char *key, char *output){
               20, 21, 22, 23, 24, 25,
               24, 25, 26, 27, 28, 29,
               28, 29, 30, 31, 32, 1};
-  char res[49] = {0};
+  char eright[49];
   int i;
   for(i=0;i<48;i++){
-    res[i] = (right[e[i]-1]==key[i])?'0':'1';
+      eright[i] = right[e[i]-1];
+  }
+  eright[48] = '\0';
+  //printf("E(R) = %s\n", eright);
+  
+  char res[49];
+  for(i=0;i<48;i++){
+    res[i] = (eright[i]==key[i])?'0':'1';
   }
   res[48] = '\0';
+  //printf("K+E(R) = %s\n", res);
   
   int s[8][64] = {{14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,
             0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,
@@ -121,8 +128,9 @@ void key_func(char *right, char *key, char *output){
       sbox[4*i+j] = (s[i][16*row+col] & 1 << (3-j))?'1':'0';
     }
   }
-  sbox[32] = '\0';
-  
+  sbox[32]='\0';
+  //printf("S = %s\n", sbox);
+
   int perm[32] = {16, 7, 20, 21,
                   29, 12, 28, 17,
                   1, 15, 23, 26,
@@ -135,6 +143,15 @@ void key_func(char *right, char *key, char *output){
     output[i] = sbox[perm[i]-1];
   }
   output[32] = '\0';
+  //printf("P(S) = %s\n", output);
+}
+
+void xor_right(char *left, char *func, char *right){
+    int i;
+    for(i=0;i<32;i++){
+        right[i] = (left[i]==func[i])?'0':'1';
+    }
+    right[32] = '\0';
 }
 
 void last_perm(char *left, char *right, char *text){
@@ -146,8 +163,12 @@ void last_perm(char *left, char *right, char *text){
                 35, 3, 43, 11, 51, 19, 59, 27,
                 34, 2, 42, 10, 50, 18, 58, 26,
                 33, 1, 41, 9, 49, 17, 57, 25};
+  char temp[65] = {0};
+  strcat(temp, right);
+  strcat(temp, left);
+  //printf("temp %s\n", temp);
   for(int i=0;i<64;i++){
-    text[i] = (ip[i]<=32)?right[ip[i]-1]:left[ip[i]-33];
+    text[i] = temp[ip[i]-1];
   }
   text[64] = '\0';
 }
@@ -158,42 +179,52 @@ int main(){
   
   char key_perm[57];
   pc1(key, key_perm);
+  //printf("%s\n", key_perm);
   
   char c[17][29];
   char d[17][29];
   strncpy(c[0], key_perm, 28);
   c[0][28] = '\0';
-  strncpy(d[0], key_perm + 28, 28);
-  d[0][28] = '\0';
+  strcpy(d[0], key_perm+28);
+  //printf("%s\n%s\n",c[0],d[0]);
 
-  int i, j;
-  int shiftnum[16] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1};
-  char key_round[16][49];
-  for(i=1;i<17;i++){
-    left_shift(c[i-1], c[i], shiftnum[i-1], 28);
-    left_shift(d[i-1], d[i], shiftnum[i-1], 28);
-    pc2(c[i], d[i], key_round[i-1]);
+  int shiftnum[16] = {1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1};
+  int i;
+  for(i=0;i<16;i++){
+      left_shift(c[i], c[i+1], shiftnum[i], 28);
+      left_shift(d[i], d[i+1], shiftnum[i], 28);
+      //printf("c: %s\nd: %s\n",c[i+1], d[i+1]);
   }
-
+  
+  char key_round[16][49];
+  for(i=0;i<16;i++){
+      pc2(c[i+1], d[i+1], key_round[i]);
+      //printf("K%d = %s\n", i+1, key_round[i]);
+  }
+  
   char perm_text[65];
   perm_init(ciphertext, perm_text);
+  //printf("IP = %s\n", perm_text);
+  
   char left[17][33];
   char right[17][33];
   strncpy(left[0], perm_text, 32);
-  strncpy(right[0], perm_text + 32, 32);
-
+  left[0][33] = '\0';
+  strcpy(right[0], perm_text + 32);
+  //printf("%s\n%s\n",left[0],right[0]);
+  
   char output[33];
-  for(i=1;i<17;i++){
-    strcpy(left[i], right[i-1]);
-    key_func(right[i-1], key_round[16-i], output);
-    for(j=0;j<32;j++){
-      right[i][j] = (left[i-1][j]==output[j])?'0':'1';
-    }
-    right[i][32] = '\0';
+  for(i=0;i<16;i++){
+      strcpy(left[i+1], right[i]);
+      //printf("L%d = %s\n", i+1, left[i+1]);
+      key_func(right[i], key_round[15-i], output);
+      xor_right(left[i], output, right[i+1]);
+      //printf("R%d = %s\n", i+1, right[i+1]);
   }
-
+  
   char text[65];
   last_perm(left[16], right[16], text);
   printf("%s\n", text);
+  
   return 0;
 }
