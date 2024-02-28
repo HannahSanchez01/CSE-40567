@@ -14,6 +14,7 @@ void pc1(char *key, char *newkey){
   for(i=0;i<56;i++){
     newkey[i] = key[permtable[i]-1];
   }
+  newkey[56] = '\0';
 }
 
 void left_shift(char *src, char *dst, int num, int len){
@@ -24,6 +25,7 @@ void left_shift(char *src, char *dst, int num, int len){
   for(i=len-num;i<len;i++){
       dst[i] = src[len-i];
   }
+  dst[len] = '\0';
 }
 
 void pc2(char *c, char *d, char *key){
@@ -36,14 +38,13 @@ void pc2(char *c, char *d, char *key){
                         44, 49, 39, 56, 34, 53,
                         46, 42, 50, 36, 29, 32};
   int i;
+  char temp[57] = {0};
+  strcat(temp, c);
+  strcat(temp, d);
   for(i=0;i<48;i++){
-    if (permtable[i] <= 28) {
-      key[i] = c[permtable[i]-1];
-    }
-    else {
-      key[i] = d[permtable[i]-29];
-    }
+    key[i] = temp[permtable[i]-1];
   }
+  key[48] = '\0';
 }
 
 void perm_init(char *text, char *perm_text){
@@ -59,10 +60,11 @@ void perm_init(char *text, char *perm_text){
   for(i=0;i<64;i++){
     perm_text[i] = text[IP[i]-1];
   }
+  perm_text[64] = '\0';
 }
 
 void key_func(char *right, char *key, char *output){
-  int e[48] = {2, 1, 2, 3, 4, 5,
+  int e[48] = {32, 1, 2, 3, 4, 5,
               4, 5, 6, 7, 8, 9,
               8, 9, 10, 11, 12, 13,
               12, 13, 14, 15, 16, 17,
@@ -70,11 +72,12 @@ void key_func(char *right, char *key, char *output){
               20, 21, 22, 23, 24, 25,
               24, 25, 26, 27, 28, 29,
               28, 29, 30, 31, 32, 1};
-  char res[49];
+  char res[49] = {0};
   int i;
   for(i=0;i<48;i++){
     res[i] = (right[e[i]-1]==key[i])?'0':'1';
   }
+  res[48] = '\0';
   
   int s[8][64] = {{14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,
             0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,
@@ -118,7 +121,8 @@ void key_func(char *right, char *key, char *output){
       sbox[4*i+j] = (s[i][16*row+col] & 1 << (3-j))?'1':'0';
     }
   }
-
+  sbox[32] = '\0';
+  
   int perm[32] = {16, 7, 20, 21,
                   29, 12, 28, 17,
                   1, 15, 23, 26,
@@ -130,6 +134,7 @@ void key_func(char *right, char *key, char *output){
   for(i=0;i<32;i++){
     output[i] = sbox[perm[i]-1];
   }
+  output[32] = '\0';
 }
 
 void last_perm(char *left, char *right, char *text){
@@ -144,6 +149,7 @@ void last_perm(char *left, char *right, char *text){
   for(int i=0;i<64;i++){
     text[i] = (ip[i]<=32)?right[ip[i]-1]:left[ip[i]-33];
   }
+  text[64] = '\0';
 }
 
 int main(){
@@ -156,7 +162,9 @@ int main(){
   char c[17][29];
   char d[17][29];
   strncpy(c[0], key_perm, 28);
+  c[0][28] = '\0';
   strncpy(d[0], key_perm + 28, 28);
+  d[0][28] = '\0';
 
   int i, j;
   int shiftnum[16] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1};
@@ -176,11 +184,12 @@ int main(){
 
   char output[33];
   for(i=1;i<17;i++){
-    strncpy(left[i], right[i-1], 33);
-    key_func(right[i-1], key_round[i-1], output);
+    strcpy(left[i], right[i-1]);
+    key_func(right[i-1], key_round[16-i], output);
     for(j=0;j<32;j++){
       right[i][j] = (left[i-1][j]==output[j])?'0':'1';
     }
+    right[i][32] = '\0';
   }
 
   char text[65];
